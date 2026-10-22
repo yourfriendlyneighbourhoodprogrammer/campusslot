@@ -1,0 +1,12 @@
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
+import mongoose from 'mongoose';import {mkdir} from 'node:fs/promises';
+import {createApp} from './app.js';import {initIndexes} from './models.js';import {seedResources,seedUser} from './seed-data.js';
+if(process.env.NODE_ENV==='production')throw new Error('Demo mode is local only.');
+await mkdir('.data/mongo',{recursive:true});
+const db=await MongoMemoryReplSet.create({instanceOpts:[{dbPath:'.data/mongo'}],replSet:{count:1,storageEngine:'wiredTiger'}});
+await mongoose.connect(db.getUri('campusslot'));await initIndexes();await seedResources();
+await seedUser('Aarav Student','student@campusslot.local','CampusDemo2026!','student');
+await seedUser('Campus Manager','manager@campusslot.local','CampusDemo2026!','manager');
+process.env.APP_ORIGIN='http://localhost:4000';
+const server=createApp().listen(4000,'127.0.0.1',()=>console.log('Local sandbox: http://localhost:4000 — student@campusslot.local or manager@campusslot.local / CampusDemo2026!'));
+for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>server.close(async()=>{await mongoose.disconnect();await db.stop({doCleanup:false});process.exit(0);}));

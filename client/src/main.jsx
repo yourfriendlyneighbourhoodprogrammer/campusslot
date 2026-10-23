@@ -1,56 +1,496 @@
-import React,{useState,useEffect} from 'react';
-import {createRoot} from 'react-dom/client';
-import {CalendarDays,Search,ArrowUpRight,ArrowRight,MapPin,Users,Clock,BookOpen,Camera,Lightbulb,Grid2X2,Bookmark,Bell,Settings,LogOut,X,Check,Plus,ChevronRight,ShieldCheck,Leaf} from 'lucide-react';
-import {api,post,dateInIndia,displayTime,hourLabel} from './api';
-import './style.css';
-const categories=['All','Study room','Creative space','Equipment'];
-function Icon({category,...props}){const C=category==='Study room'?BookOpen:category==='Equipment'?Camera:Lightbulb;return <C {...props}/>;}
-function Modal({title,close,children}){
- useEffect(()=>{const handler=e=>{if(e.key==='Escape')close();};document.addEventListener('keydown',handler);const old=document.body.style.overflow;document.body.style.overflow='hidden';return()=>{document.removeEventListener('keydown',handler);document.body.style.overflow=old;};},[close]);
- return <div className="overlay" onClick={close}><section className="modal" role="dialog" aria-modal="true" aria-label={title} onClick={e=>e.stopPropagation()}><header><h2>{title}</h2><button className="icon-button" onClick={close} aria-label="Close dialog"><X/></button></header>{children}</section></div>;
+import React, { useState, useEffect } from "react";
+import {
+  CalendarDays,
+  Search,
+  ArrowRight,
+  Clock,
+  Grid2X2,
+  Bookmark,
+  Bell,
+  Settings,
+  LogOut,
+  X,
+  Check,
+  ChevronRight,
+  ShieldCheck,
+  Leaf,
+} from "lucide-react";
+import { api, post, displayTime } from "./api";
+import { createRoot } from "react-dom/client";
+import { Empty } from "./ui";
+import "./style.css";
+import Auth from "./Auth";
+import BookingDialog from "./BookingDialog";
+import ResourceCard from "./ResourceCard";
+import MyBookings from "./MyBookings";
+import Manager from "./Manager";
+const categories = ["All", "Study room", "Creative space", "Equipment"];
+function App() {
+  const [user, setUser] = useState(null),
+    [authReady, setAuthReady] = useState(false),
+    [page, setPage] = useState("Explore"),
+    [resources, setResources] = useState([]),
+    [bookings, setBookings] = useState([]),
+    [notifications, setNotifications] = useState([]),
+    [loading, setLoading] = useState(true),
+    [error, setError] = useState(""),
+    [retry, setRetry] = useState(0),
+    [category, setCategory] = useState("All"),
+    [q, setQ] = useState(""),
+    [selected, setSelected] = useState(null),
+    [showAuth, setShowAuth] = useState(false),
+    [toast, setToast] = useState(null);
+  function notify(message, error = false) {
+    setToast({ message, error });
+  }
+  useEffect(() => {
+    if (toast) {
+      const id = setTimeout(() => setToast(null), 6000);
+      return () => clearTimeout(id);
+    }
+  }, [toast]);
+  useEffect(() => {
+    api("/auth/me")
+      .then(setUser)
+      .catch(() => {})
+      .finally(() => setAuthReady(true));
+  }, []);
+  useEffect(() => {
+    let live = true;
+    setLoading(true);
+    setError("");
+    const timer = setTimeout(
+      () =>
+        api(
+          `/resources?category=${encodeURIComponent(category)}&q=${encodeURIComponent(q)}`,
+        )
+          .then((d) => {
+            if (live) setResources(d);
+          })
+          .catch((e) => {
+            if (live) setError(e.message);
+          })
+          .finally(() => {
+            if (live) setLoading(false);
+          }),
+      200,
+    );
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [category, q, page, retry]);
+  async function refresh() {
+    if (user) {
+      try {
+        const [b, n] = await Promise.all([
+          api("/bookings"),
+          api("/notifications"),
+        ]);
+        setBookings(b);
+        setNotifications(n);
+      } catch (e) {
+        notify(e.message, true);
+      }
+    }
+  }
+  useEffect(() => {
+    refresh();
+  }, [user, page]);
+  const upcoming = bookings.filter(
+    (b) => b.live && new Date(b.start) > new Date(),
+  );
+  const unread = notifications.filter((n) => !n.read).length;
+  function navigate(p) {
+    if (p !== "Explore" && !user) {
+      setShowAuth(true);
+      return;
+    }
+    setPage(p);
+  }
+  async function signOut() {
+    try {
+      await post("/auth/logout");
+      setUser(null);
+      setBookings([]);
+      setNotifications([]);
+      setPage("Explore");
+    } catch (e) {
+      notify(e.message, true);
+    }
+  }
+  return (
+    <div className="app">
+      <aside className="sidebar">
+        <a
+          href="#"
+          className="brand"
+          onClick={(e) => {
+            e.preventDefault();
+            setPage("Explore");
+          }}
+        >
+          <span className="brand-mark">
+            <CalendarDays size={24} />
+          </span>
+          campus<span className="brand-light">slot</span>
+          <span className="brand-dot">.</span>
+        </a>
+        <p className="sidebar-label">YOUR CAMPUS, SHARED</p>
+        <nav>
+          {[
+            [Grid2X2, "Explore"],
+            [Bookmark, "My bookings"],
+            [Bell, "Updates"],
+            ...(user?.role === "manager" ? [[Settings, "Manage"]] : []),
+          ].map(([I, label]) => (
+            <button
+              key={label}
+              className={page === label ? "nav-active" : ""}
+              onClick={() => navigate(label)}
+            >
+              <I size={19} />
+              {label}
+              {label === "Updates" && unread > 0 && (
+                <span className="count">{unread}</span>
+              )}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-note">
+          <Leaf size={22} />
+          <strong>
+            Good spaces.
+            <br />
+            Great possibilities.
+          </strong>
+          <p>
+            A little less coordination.
+            <br />A little more creating.
+          </p>
+        </div>
+        <div className="profile">
+          {user ? (
+            <>
+              <span className="avatar">{user.name[0]}</span>
+              <div>
+                <strong>{user.name}</strong>
+                <small>
+                  {user.role === "manager"
+                    ? "Resource manager"
+                    : "Student account"}
+                </small>
+              </div>
+              <button
+                onClick={signOut}
+                className="icon-button"
+                aria-label="Sign out"
+              >
+                <LogOut size={17} />
+              </button>
+            </>
+          ) : (
+            <button
+              className="primary full"
+              disabled={!authReady}
+              onClick={() => setShowAuth(true)}
+            >
+              Sign in
+              <ArrowRight size={17} />
+            </button>
+          )}
+        </div>
+      </aside>
+      <div className="workspace">
+        <header className="topbar">
+          <span>
+            Campus resources <ChevronRight size={14} /> <strong>{page}</strong>
+          </span>
+          <span className="semester">
+            <span /> Built for campus life
+          </span>
+        </header>
+        <main>
+          {page === "Explore" ? (
+            <>
+              <section className="hero">
+                <div>
+                  <p className="eyebrow">MORE SPACE FOR WHAT'S NEXT</p>
+                  <h1>
+                    Your next idea
+                    <br />
+                    needs a little room.
+                  </h1>
+                  <p>
+                    Find a quiet corner, bring your team together,
+                    <br className="desktop" /> or borrow the gear to make
+                    something great.
+                  </p>
+                  <button
+                    className="hero-link"
+                    onClick={() =>
+                      document
+                        .getElementById("directory")
+                        .scrollIntoView({ behavior: "smooth" })
+                    }
+                  >
+                    Find your space <ArrowRight size={18} />
+                  </button>
+                </div>
+                <div className="hero-art" aria-hidden="true">
+                  <div className="orbit one" />
+                  <div className="orbit two" />
+                  <div className="floating-label">ROOM FOR POSSIBILITY</div>
+                  <div className="drawn-calendar">
+                    <div className="calendar-top">
+                      <span />
+                      <span />
+                    </div>
+                    <div className="calendar-heading">YOUR NEXT CHAPTER</div>
+                    <div className="calendar-cells">
+                      {Array.from({ length: 12 }, (_, i) => (
+                        <span
+                          className={i === 6 ? "calendar-check" : ""}
+                          key={i}
+                        >
+                          {i === 6 ? (
+                            <Check size={28} />
+                          ) : (
+                            String(i + 12).padStart(2, "0")
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="floating-check">
+                    <Check size={20} /> It's a plan.
+                  </div>
+                </div>
+              </section>
+              <div className="summary-strip">
+                <span>
+                  <ShieldCheck size={18} /> Fair access for everyone
+                </span>
+                <span>
+                  <Clock size={18} /> Simple one-hour bookings
+                </span>
+                <span>
+                  <CalendarDays size={18} /> Plan up to 14 days ahead
+                </span>
+              </div>
+              {user && upcoming.length > 0 && (
+                <button
+                  className="upcoming"
+                  onClick={() => setPage("My bookings")}
+                >
+                  <CalendarDays size={21} />
+                  <span>
+                    You have{" "}
+                    <strong>
+                      {upcoming.length} upcoming{" "}
+                      {upcoming.length === 1 ? "reservation" : "reservations"}
+                    </strong>
+                    . See your plans and waitlist status.
+                  </span>
+                  <ArrowRight size={18} />
+                </button>
+              )}
+              <section id="directory">
+                <div className="section-title">
+                  <div>
+                    <p className="eyebrow">FIND YOUR FOCUS</p>
+                    <h2>Explore campus resources</h2>
+                  </div>
+                  <span className="muted">
+                    {resources.length} spaces & essentials
+                  </span>
+                </div>
+                <div className="filter-bar">
+                  <div className="tabs">
+                    {categories.map((c) => (
+                      <button
+                        key={c}
+                        className={category === c ? "active" : ""}
+                        onClick={() => setCategory(c)}
+                      >
+                        {c === "All"
+                          ? "Everything"
+                          : c === "Study room"
+                            ? "Study rooms"
+                            : c === "Creative space"
+                              ? "Creative spaces"
+                              : "Equipment"}
+                      </button>
+                    ))}
+                  </div>
+                  <label className="search">
+                    <Search size={17} />
+                    <input
+                      value={q}
+                      onChange={(e) => setQ(e.target.value)}
+                      placeholder="Search name or location"
+                      aria-label="Search resources"
+                    />
+                  </label>
+                </div>
+                {loading ? (
+                  <div className="empty" role="status">
+                    Finding your next space…
+                  </div>
+                ) : error ? (
+                  <div className="error" role="alert">
+                    {error}
+                    <button onClick={() => setRetry((v) => v + 1)}>
+                      Retry
+                    </button>
+                  </div>
+                ) : resources.length ? (
+                  <div className="resource-grid">
+                    {resources.map((r) => (
+                      <ResourceCard
+                        key={r._id}
+                        resource={r}
+                        onOpen={setSelected}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <Empty
+                    title="No matches just yet."
+                    text="Try a different name, location, or category."
+                  />
+                )}
+              </section>
+              <section className="how">
+                <div>
+                  <span>01</span>
+                  <h3>Find your fit</h3>
+                  <p>
+                    A space to think, a place to create, or the gear you need.
+                  </p>
+                </div>
+                <div>
+                  <span>02</span>
+                  <h3>Make it a plan</h3>
+                  <p>
+                    Choose a time, tell us your plan, and reserve your slot.
+                  </p>
+                </div>
+                <div>
+                  <span>03</span>
+                  <h3>Show up & create</h3>
+                  <p>
+                    Check your confirmation, bring your team, and get started.
+                  </p>
+                </div>
+              </section>
+            </>
+          ) : page === "My bookings" ? (
+            <MyBookings
+              bookings={bookings}
+              onRefresh={refresh}
+              notify={notify}
+            />
+          ) : page === "Manage" ? (
+            <Manager notify={notify} />
+          ) : (
+            <>
+              <div className="section-title">
+                <div>
+                  <p className="eyebrow">STAY IN THE LOOP</p>
+                  <h1>Your updates</h1>
+                </div>
+                <button
+                  className="secondary"
+                  onClick={async () => {
+                    try {
+                      await post("/notifications/read");
+                      await refresh();
+                    } catch (e) {
+                      notify(e.message, true);
+                    }
+                  }}
+                >
+                  Mark all read
+                </button>
+              </div>
+              {notifications.length ? (
+                notifications.map((n) => (
+                  <article
+                    className={`booking-row ${!n.read ? "unread" : ""}`}
+                    key={n._id}
+                  >
+                    <Bell size={19} />
+                    <div>
+                      <p>{n.message}</p>
+                      <small className="muted">
+                        {displayTime(n.createdAt)}
+                      </small>
+                    </div>
+                    {!n.read && <span className="badge">New</span>}
+                  </article>
+                ))
+              ) : (
+                <Empty
+                  title="All quiet for now."
+                  text="Booking confirmations, approvals, and waitlist updates appear here."
+                />
+              )}
+            </>
+          )}
+          <footer>
+            <span>
+              campusslot.{" "}
+              <span className="muted">Made for the way campus works.</span>
+            </span>
+            <span>All booking times in IST · 08:00–20:00</span>
+          </footer>
+        </main>
+      </div>
+      {selected && (
+        <BookingDialog
+          resource={selected}
+          close={() => setSelected(null)}
+          user={user}
+          onAuth={() => setShowAuth(true)}
+          onBooked={(b) => {
+            notify(
+              b.status === "waitlisted"
+                ? "You’re on the waitlist. Watch Updates for a promotion."
+                : b.status === "pending"
+                  ? "Request sent. A manager will review your booking."
+                  : "You’re booked! Your next idea has a place.",
+            );
+            refresh();
+          }}
+        />
+      )}
+      {showAuth && (
+        <Auth
+          close={() => setShowAuth(false)}
+          onSuccess={(u) => {
+            setUser(u);
+            notify(`Welcome, ${u.name.split(" ")[0]}.`);
+          }}
+        />
+      )}
+      {toast && (
+        <div
+          role={toast.error ? "alert" : "status"}
+          className={`toast ${toast.error ? "toast-error" : ""}`}
+        >
+          {toast.error ? <X size={18} /> : <Check size={18} />}
+          <span>{toast.message}</span>
+          <button
+            className="icon-button"
+            onClick={() => setToast(null)}
+            aria-label="Dismiss notification"
+          >
+            <X size={15} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
-function Auth({close,onSuccess}){
- const [register,setRegister]=useState(false),[error,setError]=useState(''),[busy,setBusy]=useState(false);
- async function submit(e){e.preventDefault();setBusy(true);setError('');try{onSuccess(await post(`/auth/${register?'register':'login'}`,Object.fromEntries(new FormData(e.target))));close();}catch(e){setError(e.message);}finally{setBusy(false);}}
- return <Modal title={register?'Your campus, connected.':'Welcome back.'} close={close}><p className="muted">Sign in to reserve your next space.</p><form onSubmit={submit}>{register&&<label>Full name<input name="name" required minLength={2} maxLength={60} autoComplete="name" autoFocus/></label>}<label>Email<input name="email" type="email" required autoComplete="email" autoFocus={!register}/></label><label>Password<input name="password" type="password" required minLength={8} maxLength={72} autoComplete={register?'new-password':'current-password'}/></label>{register&&<small>Use 8–72 characters. Your account will be a student account.</small>}{error&&<p className="error" role="alert">{error}</p>}<button className="primary full" disabled={busy}>{busy?'Please wait…':register?'Create account':'Sign in'}<ArrowRight size={16}/></button></form><button className="text-button" onClick={()=>{setRegister(!register);setError('');}}>{register?'Already have an account? Sign in':'New here? Create an account'}</button></Modal>;
-}
-function BookingDialog({resource,close,user,onAuth,onBooked}){
- const [date,setDate]=useState(dateInIndia()),[slots,setSlots]=useState([]),[hour,setHour]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true);
- useEffect(()=>{let live=true;setLoading(true);setHour(null);setError('');api(`/resources/${resource._id}/slots?date=${date}`).then(data=>{if(live)setSlots(data);}).catch(e=>{if(live)setError(e.message);}).finally(()=>{if(live)setLoading(false);});return()=>{live=false;};},[date,resource._id]);
- const selected=slots.find(s=>s.hour===hour);
- async function submit(e){e.preventDefault();if(!user){onAuth();return;}setBusy(true);setError('');try{const data=new FormData(e.target);const b=await post('/bookings',{resource:resource._id,date,hour,purpose:data.get('purpose'),attendees:Number(data.get('attendees')),waitlist:!!selected?.occupied});onBooked(b);close();}catch(e){setError(e.message);}finally{setBusy(false);}}
- return <Modal title={resource.name} close={close}><p className="muted"><MapPin size={14}/> {resource.location} · Up to {resource.capacity} people</p><p>{resource.description}</p><div className="notice"><Clock size={17}/> One-hour slots · Campus time (IST) · {resource.approvalRequired?'Manager approval required':'Instant confirmation'}</div><label>Choose a day<input type="date" value={date} min={dateInIndia()} max={dateInIndia(new Date(Date.now()+14*86400000))} onChange={e=>setDate(e.target.value)} required/></label><p className="field-label">Choose a start time <span className="muted">/ 08:00–20:00</span></p>{loading?<p role="status">Loading availability…</p>:<div className="slots">{slots.map(s=><button key={s.hour} disabled={s.past} aria-pressed={hour===s.hour} className={`${hour===s.hour?'selected':''} ${s.occupied?'occupied':''}`} onClick={()=>setHour(s.hour)}>{hourLabel(s.hour)}<small>{s.past?'Passed':s.occupied?'Waitlist':'Available'}</small></button>)}</div>}{selected?.occupied&&<p className="notice">This slot is occupied. Join the queue; cancellations promote the earliest waiting request. {selected.waiting} currently waiting.</p>}<form onSubmit={submit}><label>What are you planning?<input name="purpose" placeholder="e.g. Design club project discussion" minLength={5} maxLength={200} required/></label><label>Number of people<input name="attendees" type="number" min="1" max={resource.capacity} defaultValue="1" required/></label>{error&&<p className="error" role="alert">{error}</p>}<button className="primary full" disabled={busy||hour===null||loading}>{busy?'Saving…':!user?'Sign in to continue':selected?.occupied?'Join waitlist':resource.approvalRequired?'Request this slot':'Confirm booking'}<ArrowRight size={16}/></button><small>No payment required. You can cancel before the slot begins.</small></form></Modal>;
-}
-function ResourceCard({resource,onOpen}){return <article className="resource-card"><div className={`resource-art ${resource.category==='Equipment'?'sand':resource.category==='Creative space'?'rose':'sage'}`}><div className="art-grid"/><Icon category={resource.category} size={76} strokeWidth={1}/><span className="art-tag">{resource.category}</span><span className="art-code">CS / {resource.name.slice(0,2).toUpperCase()}</span></div><div className="card-body"><div className="card-top"><span className={`badge ${resource.approvalRequired?'amber':''}`}>{resource.approvalRequired?'Approval required':'Instant booking'}</span><span className="capacity"><Users size={14}/> {resource.capacity}</span></div><h3>{resource.name}</h3><p className="location"><MapPin size={14}/>{resource.location}</p><p className="description">{resource.description}</p><div className="features">{resource.features.slice(0,3).map(f=><span key={f}>{f}</span>)}</div><button className="card-action" onClick={()=>onOpen(resource)}>View availability<ArrowUpRight size={18}/></button></div></article>;}
-function MyBookings({bookings,onRefresh,notify}){
- const [filter,setFilter]=useState('Upcoming'),[busy,setBusy]=useState(''),[confirm,setConfirm]=useState(null);
- const filtered=bookings.filter(b=>filter==='History'?(!b.live||+new Date(b.start)<Date.now()):b.live&&+new Date(b.start)>=Date.now());
- async function cancel(){setBusy(confirm._id);try{await post(`/bookings/${confirm._id}/cancel`);notify('Booking cancelled. If someone was waiting, their request has been promoted.');setConfirm(null);await onRefresh();}catch(e){notify(e.message,true);}finally{setBusy('');}}
- return <><div className="section-title"><div><p className="eyebrow">YOUR CAMPUS PLANS</p><h1>My bookings</h1><p className="muted">Your time, all in one place. All times are IST.</p></div></div><div className="tabs">{['Upcoming','History'].map(f=><button key={f} className={f===filter?'active':''} onClick={()=>setFilter(f)}>{f}</button>)}</div>{!filtered.length?<Empty title="A little room for possibility." text="Your reservations and waitlist entries will appear here."/>:filtered.map(b=><article className="booking-row" key={b._id}><div className="booking-icon"><Icon category={b.resource?.category}/></div><div className="booking-info"><h3>{b.resource?.name||'Resource unavailable'}</h3><p>{displayTime(b.start)} · 1 hour · {b.attendees} {b.attendees===1?'person':'people'}</p><p className="muted">{b.purpose}</p>{b.note&&<p className="notice">Manager’s note: {b.note}</p>}</div><span className={`badge ${b.status}`}>{b.status}</span>{b.live&&+new Date(b.start)>Date.now()&&<button className="secondary" onClick={()=>setConfirm(b)}>Cancel</button>}</article>)}{confirm&&<Modal title="Cancel this booking?" close={()=>setConfirm(null)}><p>Your reservation for {confirm.resource?.name} at {displayTime(confirm.start)} will be released. This cannot be undone.</p><button className="primary full" onClick={cancel} disabled={!!busy}>{busy?'Cancelling…':'Yes, cancel booking'}</button></Modal>}</>;
-}
-function Empty({title,text}){return <div className="empty"><CalendarDays size={36} strokeWidth={1.3}/><h3>{title}</h3><p>{text}</p></div>;}
-function Manager({notify}){
- const [data,setData]=useState(null),[error,setError]=useState(''),[review,setReview]=useState(null),[adding,setAdding]=useState(false),[busy,setBusy]=useState(false);
- const load=()=>api('/manage').then(setData).catch(e=>setError(e.message));useEffect(()=>{load();},[]);
- async function decide(e){e.preventDefault();setBusy(true);try{await post(`/manage/bookings/${review.booking._id}/${review.action}`,{note:new FormData(e.target).get('note')});setReview(null);notify('Request updated.');await load();}catch(e){notify(e.message,true);}finally{setBusy(false);}}
- async function add(e){e.preventDefault();setBusy(true);const f=new FormData(e.target);try{await post('/manage/resources',{name:f.get('name'),category:f.get('category'),location:f.get('location'),description:f.get('description'),capacity:Number(f.get('capacity')),features:f.get('features').split(',').map(x=>x.trim()).filter(Boolean),approvalRequired:f.get('approval')==='on'});setAdding(false);notify('Resource added.');await load();}catch(e){notify(e.message,true);}finally{setBusy(false);}}
- async function toggle(r){setBusy(true);try{await api(`/manage/resources/${r._id}`,{method:'PATCH',body:JSON.stringify({active:!r.active})});await load();notify(r.active?'Resource paused for new bookings.':'Resource reopened.');}catch(e){notify(e.message,true);}finally{setBusy(false);}}
- if(!data)return <p role="status">{error||'Loading manager workspace…'}</p>;
- const pending=data.bookings.filter(b=>b.status==='pending'&&+new Date(b.start)>Date.now());
- return <><div className="section-title"><div><p className="eyebrow">MANAGER WORKSPACE</p><h1>A well-run campus.</h1><p className="muted">Review requests and keep shared resources available.</p></div><button className="primary" onClick={()=>setAdding(true)}><Plus size={17}/>Add resource</button></div><div className="stats"><div><strong>{pending.length}</strong><span>Awaiting review</span></div><div><strong>{data.resources.filter(r=>r.active).length}</strong><span>Active resources</span></div><div><strong>{data.bookings.filter(b=>b.status==='confirmed').length}</strong><span>Confirmed reservations</span></div></div><h2>Pending requests</h2>{!pending.length?<Empty title="You're all caught up." text="New approval requests will appear here."/>:pending.map(b=><article className="booking-row" key={b._id}><div className="booking-info"><h3>{b.resource?.name}</h3><p>{b.user?.name} · {displayTime(b.start)} · {b.attendees} people</p><p className="muted">{b.purpose}</p></div><button className="secondary" onClick={()=>setReview({booking:b,action:'reject'})}>Decline</button><button className="primary" onClick={()=>setReview({booking:b,action:'approve'})}>Approve</button></article>)}<h2 className="spaced">Resource directory</h2><p className="muted">Pausing stops new reservations. Existing reservations remain valid.</p>{data.resources.map(r=><article className="booking-row" key={r._id}><div className="booking-icon"><Icon category={r.category}/></div><div className="booking-info"><h3>{r.name}</h3><p>{r.location}</p></div><span className="badge">{r.active?'Open':'Paused'}</span><button className="secondary" disabled={busy} onClick={()=>toggle(r)}>{r.active?'Pause':'Reopen'}</button></article>)}{review&&<Modal title={review.action==='approve'?'Approve request':'Decline request'} close={()=>setReview(null)}><p>{review.booking.user?.name} · {review.booking.resource?.name}</p><form onSubmit={decide}><label>Note to the student<textarea name="note" maxLength={200} minLength={review.action==='reject'?3:0} required={review.action==='reject'} placeholder={review.action==='reject'?'Explain why this request is being declined':'Optional pickup or access instructions'}/></label><button className="primary full" disabled={busy}>{busy?'Saving…':'Confirm decision'}</button></form></Modal>}{adding&&<Modal title="Add a campus resource" close={()=>setAdding(false)}><form onSubmit={add}><label>Name<input name="name" required minLength={3} maxLength={70}/></label><label>Category<select name="category">{categories.slice(1).map(c=><option key={c}>{c}</option>)}</select></label><label>Location<input name="location" required minLength={2} maxLength={80}/></label><label>Description<textarea name="description" required minLength={10} maxLength={500}/></label><label>Capacity<input name="capacity" type="number" min="1" max="100" defaultValue="4" required/></label><label>Features, separated by commas<input name="features" placeholder="Wi-Fi, Whiteboard"/></label><label className="check-label"><input name="approval" type="checkbox"/>Require manager approval</label><button className="primary full" disabled={busy}>{busy?'Adding…':'Create resource'}</button></form></Modal>}</>;
-}
-function App(){
- const [user,setUser]=useState(null),[authReady,setAuthReady]=useState(false),[page,setPage]=useState('Explore'),[resources,setResources]=useState([]),[bookings,setBookings]=useState([]),[notifications,setNotifications]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[category,setCategory]=useState('All'),[q,setQ]=useState(''),[selected,setSelected]=useState(null),[showAuth,setShowAuth]=useState(false),[toast,setToast]=useState(null);
- function notify(message,error=false){setToast({message,error});}
- useEffect(()=>{if(toast){const id=setTimeout(()=>setToast(null),6000);return()=>clearTimeout(id);}},[toast]);
- useEffect(()=>{api('/auth/me').then(setUser).catch(()=>{}).finally(()=>setAuthReady(true));},[]);
- useEffect(()=>{let live=true;setLoading(true);setError('');const timer=setTimeout(()=>api(`/resources?category=${encodeURIComponent(category)}&q=${encodeURIComponent(q)}`).then(d=>{if(live)setResources(d);}).catch(e=>{if(live)setError(e.message);}).finally(()=>{if(live)setLoading(false);}),200);return()=>{live=false;clearTimeout(timer);};},[category,q,page]);
- async function refresh(){if(user){try{const [b,n]=await Promise.all([api('/bookings'),api('/notifications')]);setBookings(b);setNotifications(n);}catch(e){notify(e.message,true);}}}
- useEffect(()=>{refresh();},[user,page]);
- const upcoming=bookings.filter(b=>b.live&&new Date(b.start)>new Date());
- const unread=notifications.filter(n=>!n.read).length;
- function navigate(p){if(p!=='Explore'&&!user){setShowAuth(true);return;}setPage(p);}
- async function signOut(){try{await post('/auth/logout');setUser(null);setBookings([]);setNotifications([]);setPage('Explore');}catch(e){notify(e.message,true);}}
- return <div className="app"><aside className="sidebar"><a href="#" className="brand" onClick={e=>{e.preventDefault();setPage('Explore');}}><span className="brand-mark"><CalendarDays size={24}/></span>campus<span className="brand-light">slot</span><span className="brand-dot">.</span></a><p className="sidebar-label">YOUR CAMPUS, SHARED</p><nav>{[[Grid2X2,'Explore'],[Bookmark,'My bookings'],[Bell,'Updates'],...(user?.role==='manager'?[[Settings,'Manage']]:[])].map(([I,label])=><button key={label} className={page===label?'nav-active':''} onClick={()=>navigate(label)}><I size={19}/>{label}{label==='Updates'&&unread>0&&<span className="count">{unread}</span>}</button>)}</nav><div className="sidebar-note"><Leaf size={22}/><strong>Good spaces.<br/>Great possibilities.</strong><p>A little less coordination.<br/>A little more creating.</p></div><div className="profile">{user?<><span className="avatar">{user.name[0]}</span><div><strong>{user.name}</strong><small>{user.role==='manager'?'Resource manager':'Student account'}</small></div><button onClick={signOut} className="icon-button" aria-label="Sign out"><LogOut size={17}/></button></>:<button className="primary full" disabled={!authReady} onClick={()=>setShowAuth(true)}>Sign in<ArrowRight size={17}/></button>}</div></aside><div className="workspace"><header className="topbar"><span>Campus resources <ChevronRight size={14}/> <strong>{page}</strong></span><span className="semester"><span/> Built for campus life</span></header><main>{page==='Explore'?<><section className="hero"><div><p className="eyebrow">MORE SPACE FOR WHAT'S NEXT</p><h1>Your next idea<br/>needs a little room.</h1><p>Find a quiet corner, bring your team together,<br className="desktop"/> or borrow the gear to make something great.</p><button className="hero-link" onClick={()=>document.getElementById('directory').scrollIntoView({behavior:'smooth'})}>Find your space <ArrowRight size={18}/></button></div><div className="hero-art" aria-hidden="true"><div className="orbit one"/><div className="orbit two"/><div className="floating-label">ROOM FOR POSSIBILITY</div><div className="drawn-calendar"><div className="calendar-top"><span/><span/></div><div className="calendar-heading">YOUR NEXT CHAPTER</div><div className="calendar-cells">{Array.from({length:12},(_,i)=><span className={i===6?'calendar-check':''} key={i}>{i===6?<Check size={28}/>:String(i+12).padStart(2,'0')}</span>)}</div></div><div className="floating-check"><Check size={20}/> It's a plan.</div></div></section><div className="summary-strip"><span><ShieldCheck size={18}/> Fair access for everyone</span><span><Clock size={18}/> Simple one-hour bookings</span><span><CalendarDays size={18}/> Plan up to 14 days ahead</span></div>{user&&upcoming.length>0&&<button className="upcoming" onClick={()=>setPage('My bookings')}><CalendarDays size={21}/><span>You have <strong>{upcoming.length} upcoming {upcoming.length===1?'reservation':'reservations'}</strong>. See your plans and waitlist status.</span><ArrowRight size={18}/></button>}<section id="directory"><div className="section-title"><div><p className="eyebrow">FIND YOUR FOCUS</p><h2>Explore campus resources</h2></div><span className="muted">{resources.length} spaces & essentials</span></div><div className="filter-bar"><div className="tabs">{categories.map(c=><button key={c} className={category===c?'active':''} onClick={()=>setCategory(c)}>{c==='All'?'Everything':c==='Study room'?'Study rooms':c==='Creative space'?'Creative spaces':'Equipment'}</button>)}</div><label className="search"><Search size={17}/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search name or location" aria-label="Search resources"/></label></div>{loading?<div className="empty" role="status">Finding your next space…</div>:error?<div className="error" role="alert">{error}<button onClick={()=>setPage('Explore')}>Try refreshing the page</button></div>:resources.length?<div className="resource-grid">{resources.map(r=><ResourceCard key={r._id} resource={r} onOpen={setSelected}/>)}</div>:<Empty title="No matches just yet." text="Try a different name, location, or category."/>}</section><section className="how"><div><span>01</span><h3>Find your fit</h3><p>A space to think, a place to create, or the gear you need.</p></div><div><span>02</span><h3>Make it a plan</h3><p>Choose a time, tell us your plan, and reserve your slot.</p></div><div><span>03</span><h3>Show up & create</h3><p>Check your confirmation, bring your team, and get started.</p></div></section></>:page==='My bookings'?<MyBookings bookings={bookings} onRefresh={refresh} notify={notify}/>:page==='Manage'?<Manager notify={notify}/>:<><div className="section-title"><div><p className="eyebrow">STAY IN THE LOOP</p><h1>Your updates</h1></div><button className="secondary" onClick={async()=>{try{await post('/notifications/read');await refresh();}catch(e){notify(e.message,true);}}}>Mark all read</button></div>{notifications.length?notifications.map(n=><article className={`booking-row ${!n.read?'unread':''}`} key={n._id}><Bell size={19}/><div><p>{n.message}</p><small className="muted">{displayTime(n.createdAt)}</small></div>{!n.read&&<span className="badge">New</span>}</article>):<Empty title="All quiet for now." text="Booking confirmations, approvals, and waitlist updates appear here."/>}</>}<footer><span>campusslot. <span className="muted">Made for the way campus works.</span></span><span>All booking times in IST · 08:00–20:00</span></footer></main></div>{selected&&<BookingDialog resource={selected} close={()=>setSelected(null)} user={user} onAuth={()=>setShowAuth(true)} onBooked={b=>{notify(b.status==='waitlisted'?'You’re on the waitlist. Watch Updates for a promotion.':b.status==='pending'?'Request sent. A manager will review your booking.':'You’re booked! Your next idea has a place.');refresh();}}/>}{showAuth&&<Auth close={()=>setShowAuth(false)} onSuccess={u=>{setUser(u);notify(`Welcome, ${u.name.split(' ')[0]}.`);}}/>}{toast&&<div role={toast.error?'alert':'status'} className={`toast ${toast.error?'toast-error':''}`}>{toast.error?<X size={18}/>:<Check size={18}/>}<span>{toast.message}</span><button className="icon-button" onClick={()=>setToast(null)} aria-label="Dismiss notification"><X size={15}/></button></div>}</div>;
-}
-createRoot(document.getElementById('root')).render(<App/>);
+createRoot(document.getElementById("root")).render(<App />);

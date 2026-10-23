@@ -3,6 +3,10 @@
 
 Campus room and equipment reservations, built with MongoDB, Express, React, and Node.js.
 
+**Live app:** https://campusslot-phi.vercel.app
+
+The public deployment uses MongoDB Atlas. Create a student account from Sign in → Create an account. Manager credentials are kept private. The temporary Atlas network rule expires **30 October 2026, 16:22 IST** and must be replaced or renewed if evaluation continues afterward.
+
 ## Problem and target users
 Students often coordinate shared rooms, cameras, and projectors through messages. Availability becomes unclear and two groups can arrive expecting the same resource. CampusSlot serves students and resource managers with a single reservation workflow.
 

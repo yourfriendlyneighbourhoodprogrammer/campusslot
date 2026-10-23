@@ -1,5 +1,14 @@
 # Deployment
 
+## Current deployment
+- Production: https://campusslot-phi.vercel.app
+- Source: https://github.com/yourfriendlyneighbourhoodprogrammer/campusslot
+- Dedicated Atlas account: `campusslot_user`, read/write only on `campusslot`, restricted to the existing cluster.
+- Database URI is stored as a Vercel production Secret; it is absent from Git.
+- Public API workflows passed on 23 October; browser verification continued on 24 October.
+- The owner-approved temporary network access rule expires **30 October 2026, 16:22 IST**. Replace it with restricted hosting egress or renew deliberately before evaluation after that time.
+
+
 ## Vercel + MongoDB Atlas
 1. Provision an Atlas database user authorized for the `campusslot` database. The app uses transactions, supported by Atlas replica sets.
 2. Configure Atlas Network Access for the hosting network. Do not disable TLS. Static egress/private networking is preferable for long-term use; discuss network access requirements with the host before broadening it.

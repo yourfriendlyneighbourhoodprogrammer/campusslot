@@ -8,8 +8,8 @@ Official form: https://forms.gle/sBy4sfqyiRG2Zpom9
 - [x] Production frontend build passes.
 - [x] Browser verification: login → availability → reserve → persisted booking → inbox.
 - [x] Incremental Git commits and setup/architecture/API/demo documentation.
-- [ ] Source publication (deferred while keeping the project local).
-- [ ] Atlas connectivity and public deployment (deferred at user request).
+- [x] Public GitHub repository with development history.
+- [ ] Atlas connectivity and public deployment verification.
 - [ ] Manager approval flow checked on public deployment.
 - [ ] Student demo video recorded and accessible.
 - [ ] Final submission form completed.
@@ -18,10 +18,15 @@ Official form: https://forms.gle/sBy4sfqyiRG2Zpom9
 Project Name: CampusSlot
 Student Name: Shounak (confirm full name and roll number in the form)
 Problem Statement: Students need reliable access to shared campus rooms and equipment without conflicting reservations or manual coordination.
-GitHub Repository: https://github.com/yourfriendlyneighbourhoodprogrammer/campusslot (empty repository reserved; source remains local at the user’s request)
-Deployed Application: Pending verification
+GitHub Repository: https://github.com/yourfriendlyneighbourhoodprogrammer/campusslot
+Deployed Application: https://campusslot-phi.vercel.app — deployment built successfully; Atlas access and end-to-end verification are still pending.
 Demo Video: Record using docs/DEMO.md and insert the published link
 Tech Stack: MongoDB, Express, React, Node.js, Vite, Zod
 Major Features: Authentication; resource search/availability; conflict-safe reservations; FIFO waitlists; manager approvals and notifications.
 
 Local completion is not final submission. The form and accessible demo video are required by the course guidelines.
+
+## Publication status (23 October 2026)
+The public GitHub repository contains the development history and its CI checks passed. Vercel production deployment is created, with the Atlas URI stored as a server-side secret and APP_ORIGIN configured. The current Atlas user is restricted to shopkart and the IP allowlist permits only the old local address. Public database functionality must be verified after the owner approves the required Atlas access changes. Do not treat a successful deployment build as a completed submission.
+
+The repository URL and project explanation have been entered in the submission form. The student will enter their own personal details and submit after deployment verification and recording the required demo video.

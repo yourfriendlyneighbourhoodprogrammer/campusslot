@@ -15,6 +15,6 @@ Browser, local sandbox:
 
 Manager approval in the browser also passed: a pending Podcast Corner request was approved with a pickup note.
 
-External verification is deferred at the user’s request to keep the project local. Atlas connectivity failed with a TLS/server-selection error; no public deployment was made. Do not represent local test results as proof of a working public deployment.
+Public deployment was created on 23 October at https://campusslot-phi.vercel.app and the frontend is accessible without Vercel login. Atlas network access and read/write permission for campusslot were approved and saved. The saved database password is rejected by Atlas (authentication failure); public API verification is pending correction. Do not represent local test results as proof of a working public deployment.
 
 Final persistence check (23 October): after a graceful server/database restart, the same student session and approved booking with manager note were restored in the browser.

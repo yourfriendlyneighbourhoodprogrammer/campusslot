@@ -40,3 +40,11 @@ Browser verification on the public deployment, 24 October:
 - Reload restored the manager session; the workspace showed zero pending requests and one confirmed reservation.
 - Signed out and verified the public catalog remained accessible.
 - Screenshots: screenshots/public-live.png and screenshots/public-manager-verified.png.
+
+## Visual refresh — 24 October 2026
+- Added three AI-generated, locally hosted WebP illustrations (about 490 KB total) for spaces and equipment.
+- Replaced the pale icon-only hero with a forest-green introduction, prominent action button, and study-room image visible on mobile.
+- Production build passed; GitHub CI passed for commit `a01ee3b` ([run](https://github.com/yourfriendlyneighbourhoodprogrammer/campusslot/actions/runs/40070923873)).
+- Verified the local layout at 622 px with no horizontal overflow, corrected card image cropping, checked category filters and the availability dialog.
+- Production deployment is READY at the existing public URL; catalog loading, image rendering and category filtering were checked in the browser.
+- No browser console errors were observed during the live visual check.

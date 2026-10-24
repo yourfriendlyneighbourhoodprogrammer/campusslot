@@ -254,145 +254,90 @@ main {
   padding: 34px 42px 0;
 }
 .hero {
-  border-radius: 17px;
-  background: #eaf0df;
-  min-height: 310px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 34px 40px;
+  border-radius: 18px;
+  background: #174b3f;
+  color: #fffdf2;
+  display: grid;
+  grid-template-columns: 1.12fr 1fr;
   overflow: hidden;
   position: relative;
 }
+.hero-copy {
+  padding: 40px;
+}
 .hero .eyebrow {
-  color: #6d7d4f;
+  color: #d9e7a6;
 }
 .hero h1 {
-  font-size: 42px;
+  font-size: clamp(32px, 3.3vw, 48px);
   line-height: 1.16;
   letter-spacing: -1.8px;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 .hero p:not(.eyebrow) {
-  color: #78826c;
+  color: #d5e2d9;
   font-size: 13px;
 }
 .hero-link {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 20px;
+  gap: 22px;
   border: 0;
-  border-bottom: 1px solid #9caa81;
-  background: none;
-  padding: 4px 0 8px;
-  color: var(--green);
+  border-radius: 7px;
+  background: #e5efbc;
+  padding: 13px 18px;
+  margin-top: 8px;
+  color: #174b3f;
   font-weight: 700;
   font-size: 12px;
 }
+.hero-link:hover {
+  background: #f1f6d9;
+}
 .hero-art {
-  width: 290px;
-  height: 260px;
-  position: relative;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-}
-.orbit {
-  position: absolute;
-  width: 260px;
-  height: 260px;
-  border: 1px solid #d7dfc4;
-  border-radius: 50%;
-}
-.orbit.two {
-  width: 320px;
-  height: 320px;
-}
-.drawn-calendar {
-  background: #fdfdf5;
-  border: 1px solid #d4ddc7;
-  border-radius: 12px;
-  box-shadow: 10px 16px 0 #dce5cd;
-  transform: rotate(-9deg);
-  width: 202px;
-  height: 212px;
-  padding: 22px 17px;
+  min-width: 0;
+  min-height: 340px;
   position: relative;
 }
-.calendar-top {
+.hero-art img {
+  width: 100%;
+  height: 100%;
   position: absolute;
-  top: -10px;
-  left: 38px;
-  right: 38px;
-  display: flex;
-  justify-content: space-between;
+  object-fit: cover;
+  object-position: 55% center;
 }
-.calendar-top span {
-  width: 9px;
-  height: 25px;
-  border-radius: 6px;
-  background: #779365;
-  border: 2px solid #eaf0df;
-}
-.calendar-heading {
-  font-size: 9px;
-  letter-spacing: 1.2px;
-  padding: 8px 0 14px;
-  border-bottom: 1px solid #e0e5d5;
-  text-align: center;
-  color: #7b8b69;
-}
-.calendar-cells {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-top: 12px;
-}
-.calendar-cells span {
-  display: grid;
-  place-items: center;
-  height: 30px;
-  color: #a4af92;
-  font-size: 12px;
-}
-.calendar-cells .calendar-check {
-  background: var(--green);
-  border-radius: 7px;
-  color: white;
-}
-.floating-label {
+.hero-photo-caption {
   position: absolute;
-  right: -6px;
-  top: 14px;
-  background: #f5f7ed;
-  padding: 8px 10px;
-  border: 1px solid #dde5cf;
-  border-radius: 5px;
-  font-size: 8px;
-  letter-spacing: 1px;
-  transform: rotate(8deg);
-  z-index: 2;
-}
-.floating-check {
-  position: absolute;
-  bottom: 17px;
-  right: 0;
-  background: #fbfcf6;
-  padding: 11px 18px;
-  border-radius: 7px;
-  border: 1px solid #d8e0cd;
-  box-shadow: 0 6px 16px #264c4210;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  transform: rotate(5deg);
+  gap: 9px;
+  width: fit-content;
+  background: #fffdf2ed;
+  color: #254a3d;
+  padding: 11px 14px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.photo-dot {
+  width: 7px;
+  height: 7px;
+  background: #477858;
+  border-radius: 50%;
+}
+.image-note {
+  color: #69766d;
+  font-size: 11px;
+  margin: 16px 0 0;
 }
 .summary-strip {
   display: flex;
   justify-content: space-between;
   padding: 20px 20px 28px;
-  color: #8a9485;
+  color: #65755f;
   font-size: 11px;
 }
 .summary-strip span {
@@ -483,11 +428,22 @@ main {
   box-shadow: 0 8px 25px #1a4e4210;
 }
 .resource-art {
-  height: 155px;
+  height: 190px;
   position: relative;
   overflow: hidden;
   display: grid;
   place-items: center;
+}
+.resource-art img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s;
+}
+.resource-card:hover .resource-art img {
+  transform: scale(1.035);
 }
 .resource-art > svg {
   transform: rotate(-10deg);
@@ -505,32 +461,15 @@ main {
   background: #e9e1db;
   color: #a08a7b;
 }
-.art-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(#ffffff25 1px, transparent 1px),
-    linear-gradient(90deg, #ffffff25 1px, transparent 1px);
-  background-size: 26px 26px;
-  mask-image: linear-gradient(120deg, black, transparent);
-}
 .art-tag {
   position: absolute;
   top: 14px;
   left: 14px;
-  background: #ffffffbf;
+  background: #fffffff0;
   border-radius: 4px;
   font-size: 9px;
   padding: 5px 8px;
-  color: #6c7869;
-}
-.art-code {
-  position: absolute;
-  bottom: 12px;
-  right: 13px;
-  font-size: 8px;
-  letter-spacing: 1.4px;
-  opacity: 0.65;
+  color: #2b4e3f;
 }
 .card-body {
   padding: 19px;
@@ -924,11 +863,8 @@ footer .muted {
   .hero h1 {
     font-size: 50px;
   }
-  .hero {
+  .hero-copy {
     padding: 45px 50px;
-  }
-  .hero-art {
-    margin-right: 50px;
   }
   .resource-art {
     height: 190px;
@@ -956,15 +892,14 @@ footer .muted {
   .brand {
     font-size: 20px;
   }
-  .hero {
-    padding: 30px;
+  .hero-copy {
+    padding: 28px;
   }
   .hero h1 {
     font-size: 35px;
   }
   .hero-art {
-    width: 220px;
-    transform: scale(0.85);
+    min-height: 320px;
   }
   .resource-grid {
     gap: 15px;
@@ -1024,14 +959,16 @@ footer .muted {
     padding: 20px;
   }
   .hero {
-    min-height: 290px;
+    grid-template-columns: 1fr;
+  }
+  .hero-copy {
     padding: 27px;
   }
   .hero h1 {
     font-size: 34px;
   }
   .hero-art {
-    display: none;
+    min-height: 215px;
   }
   .hero p:not(.eyebrow) {
     font-size: 12px;
@@ -1051,7 +988,7 @@ footer .muted {
     grid-template-columns: 1fr;
   }
   .resource-art {
-    height: 170px;
+    height: 210px;
   }
   .description {
     min-height: 0;

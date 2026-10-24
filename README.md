@@ -11,7 +11,7 @@ The public deployment uses MongoDB Atlas. Create a student account from Sign in 
 Students often coordinate shared rooms, cameras, and projectors through messages. Availability becomes unclear and two groups can arrive expecting the same resource. CampusSlot serves students and resource managers with a single reservation workflow.
 
 ## Preview
-![CampusSlot preview](docs/screenshots/student-preview.png)
+![CampusSlot preview](docs/screenshots/public-live.png)
 
 ## What works
 - Student registration, login, persistent sessions, and logout.
@@ -22,7 +22,7 @@ Students often coordinate shared rooms, cameras, and projectors through messages
 - Private booking history and persistent notification inbox.
 - Manager approvals with notes, resource creation, and pause/reopen controls.
 
-All catalog entries are fictional examples, not actual campus availability. The local sandbox is for demonstration only.
+All catalog entries are fictional examples, not actual campus availability. The three locally hosted WebP images are AI-generated illustrations of study spaces, creative rooms, and equipment; they are not photographs of a real campus. The local sandbox is for demonstration only.
 
 ## Local setup
 Use Node.js 22.12+ and npm.

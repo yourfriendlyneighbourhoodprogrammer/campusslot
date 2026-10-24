@@ -214,7 +214,7 @@ function App() {
           {page === "Explore" ? (
             <>
               <section className="hero">
-                <div>
+                <div className="hero-copy">
                   <p className="eyebrow">MORE SPACE FOR WHAT'S NEXT</p>
                   <h1>
                     Your next idea
@@ -237,33 +237,16 @@ function App() {
                     Find your space <ArrowRight size={18} />
                   </button>
                 </div>
-                <div className="hero-art" aria-hidden="true">
-                  <div className="orbit one" />
-                  <div className="orbit two" />
-                  <div className="floating-label">ROOM FOR POSSIBILITY</div>
-                  <div className="drawn-calendar">
-                    <div className="calendar-top">
-                      <span />
-                      <span />
-                    </div>
-                    <div className="calendar-heading">YOUR NEXT CHAPTER</div>
-                    <div className="calendar-cells">
-                      {Array.from({ length: 12 }, (_, i) => (
-                        <span
-                          className={i === 6 ? "calendar-check" : ""}
-                          key={i}
-                        >
-                          {i === 6 ? (
-                            <Check size={28} />
-                          ) : (
-                            String(i + 12).padStart(2, "0")
-                          )}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="floating-check">
-                    <Check size={20} /> It's a plan.
+                <div className="hero-art">
+                  <img
+                    src="/images/study-room.webp"
+                    alt="Illustrative sunlit campus study room with green chairs and a shared table"
+                    width="1536"
+                    height="1024"
+                    fetchPriority="high"
+                  />
+                  <div className="hero-photo-caption">
+                    <span className="photo-dot" /> A space to start something.
                   </div>
                 </div>
               </section>
@@ -360,6 +343,10 @@ function App() {
                     text="Try a different name, location, or category."
                   />
                 )}
+                <p className="image-note">
+                  Illustrative spaces and equipment. Explore each listing for
+                  booking details.
+                </p>
               </section>
               <section className="how">
                 <div>

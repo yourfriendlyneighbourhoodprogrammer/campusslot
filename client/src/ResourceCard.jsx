@@ -1,20 +1,35 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { ArrowUpRight, MapPin, Users } from "lucide-react";
 
 import { Icon } from "./ui";
-const categories = ["All", "Study room", "Creative space", "Equipment"];
+const categoryImages = {
+  "Study room": "/images/study-room.webp",
+  "Creative space": "/images/creative-studio.webp",
+  Equipment: "/images/equipment.webp",
+};
 export default function ResourceCard({ resource, onOpen }) {
+  const image =
+    resource.name === "Innovation Lab"
+      ? categoryImages["Study room"]
+      : categoryImages[resource.category];
   return (
     <article className="resource-card">
       <div
         className={`resource-art ${resource.category === "Equipment" ? "sand" : resource.category === "Creative space" ? "rose" : "sage"}`}
       >
-        <div className="art-grid" />
-        <Icon category={resource.category} size={76} strokeWidth={1} />
+        {image ? (
+          <img
+            src={image}
+            alt={`Illustration of ${resource.category.toLowerCase()} facilities`}
+            width="1536"
+            height="1024"
+            loading="lazy"
+            decoding="async"
+          />
+        ) : (
+          <Icon category={resource.category} size={76} strokeWidth={1} />
+        )}
         <span className="art-tag">{resource.category}</span>
-        <span className="art-code">
-          CS / {resource.name.slice(0, 2).toUpperCase()}
-        </span>
       </div>
       <div className="card-body">
         <div className="card-top">
